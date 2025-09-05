@@ -1,3 +1,5 @@
+version: '3.8'
+
 volumes:
   db_storage:
   n8n_storage:
@@ -15,11 +17,11 @@ x-shared: &shared
     - DB_POSTGRESDB_PASSWORD=${POSTGRES_NON_ROOT_PASSWORD}
     - EXECUTIONS_MODE=queue
     - QUEUE_BULL_REDIS_HOST=redis
+    # --- for production ---
+    - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD} 
+    # --------------
     - QUEUE_HEALTH_CHECK_ACTIVE=true
     - N8N_ENCRYPTION_KEY=${ENCRYPTION_KEY}
-  links:
-    - postgres
-    - redis
   volumes:
     - n8n_storage:/home/node/.n8n
   depends_on:
@@ -46,6 +48,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    # for production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'  
+          memory: 512M 
+    #-----------
 
   redis:
     image: redis:6-alpine
@@ -61,14 +70,36 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    # for production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'  
+          memory: 128M 
+    #-----------
 
   n8n:
     <<: *shared
     ports:
       - 5678:5678
+      # --- for production ---
+    # for production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'  
+          memory: 256M 
+    #-----------
 
   n8n-worker:
     <<: *shared
     command: worker
     depends_on:
       - n8n
+      # --- for production ---
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0' 
+          memory: 512MB  
+    # ----------------------
